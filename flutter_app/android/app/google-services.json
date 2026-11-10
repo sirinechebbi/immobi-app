@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "180401763783",
+    "project_id": "immo-app-b9a61",
+    "storage_bucket": "immo-app-b9a61.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:180401763783:android:643140bf93bbd20ea095e2",
+        "android_client_info": {
+          "package_name": "com.immo.immo_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "180401763783-gth45pfklbgmjftgf5ol7ebuekgjkp3l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDibxKCMR1TDsrQ-yBNLBS4kdk7k44FbjU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "180401763783-gth45pfklbgmjftgf5ol7ebuekgjkp3l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

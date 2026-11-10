@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    // Admin = document admins/<uid> créé à la main dans la console
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function otherUid(c) {
+      return c.buyerId == request.auth.uid ? c.sellerId : c.buyerId;
+    }
+
+    function validListing(d) {
+      return d.title is string && d.title.size() >= 5 && d.title.size() <= 120
+        && d.price is number && d.price >= 0
+        && d.lat is number && d.lat >= -90 && d.lat <= 90
+        && d.lng is number && d.lng >= -180 && d.lng <= 180
+        && d.geohash is string
+        && d.propertyType in ['appartement','maison','villa','studio','terrain','local_commercial','bureau','autre']
+        && d.transaction in ['vente','location']
+        && d.photos is list && d.photos.size() <= 15
+        && (!('description' in d) || (d.description is string && d.description.size() <= 5000));
+    }
+
+    // ---------- Utilisateurs ----------
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['fullName', 'avatarUrl', 'createdAt'])
+        && request.resource.data.createdAt == request.time;
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'avatarUrl']);
+      allow delete: if false;
+
+      match /private/{doc} {
+        allow read, write: if isOwner(uid);
+      }
+      match /tokens/{token} {
+        allow read, write: if isOwner(uid);
+      }
+      match /favorites/{listingId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // ---------- Annonces ----------
+    match /listings/{listingId} {
+      allow read: if resource.data.status == 'active'
+                  || isOwner(resource.data.ownerId)
+                  || isAdmin();
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status in ['draft', 'active']
+        && request.resource.data.viewsCount == 0
+        && request.resource.data.createdAt == request.time
+        && validListing(request.resource.data);
+
+      allow update: if (
+          // le propriétaire modifie son annonce
+          isOwner(resource.data.ownerId)
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.status in ['draft', 'active', 'archived']
+          && request.resource.data.viewsCount == resource.data.viewsCount
+          && request.resource.data.createdAt == resource.data.createdAt
+          && validListing(request.resource.data)
+        ) || (
+          // n'importe quel utilisateur connecté ajoute +1 vue
+          signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewsCount'])
+          && request.resource.data.viewsCount == resource.data.viewsCount + 1
+        ) || (
+          // l'admin modère (change le statut)
+          isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        );
+
+      allow delete: if isOwner(resource.data.ownerId) || isAdmin();
+    }
+
+    // ---------- Conversations ----------
+    // ID : <listingId>_<buyerId>
+    match /conversations/{convId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+
+      allow create: if signedIn()
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.buyerId != request.resource.data.sellerId
+        && request.resource.data.participants == [request.resource.data.buyerId, request.resource.data.sellerId]
+        && convId == request.resource.data.listingId + '_' + request.auth.uid
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.ownerId
+             == request.resource.data.sellerId;
+
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.participants
+        && (
+          // (a) je marque mes messages comme lus
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unread'])
+            && request.resource.data.unread.diff(resource.data.unread).affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.unread[request.auth.uid] == 0
+          )
+          ||
+          // (b) j'envoie un message : dernier message + non-lu de l'autre
+          (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['lastMessage', 'lastMessageAt', 'lastSenderId', 'unread'])
+            && request.resource.data.lastSenderId == request.auth.uid
+            && request.resource.data.lastMessageAt == request.time
+            && request.resource.data.unread.diff(resource.data.unread).affectedKeys()
+                 .hasOnly([otherUid(resource.data)])
+          )
+        );
+
+      allow delete: if false;
+
+      match /messages/{msgId} {
+        allow read: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
+
+        allow create: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants
+          && request.resource.data.keys().hasOnly(['senderId', 'content', 'createdAt'])
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.content is string
+          && request.resource.data.content.size() > 0
+          && request.resource.data.content.size() <= 4000
+          && request.resource.data.createdAt == request.time;
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}
