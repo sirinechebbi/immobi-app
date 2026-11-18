@@ -17,6 +17,7 @@ import { Listing, fetchListing, formatPrice } from '@/api/listingsApi';
 import { PROPERTY_LABELS } from '@/constants/propreties';
 import { useAuthStore } from '@/store/authStore';
 import { colors, fonts } from '@/theme';
+import { conversationId } from '@/api/chatApi';
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -75,12 +76,24 @@ export default function ListingDetailScreen() {
 
   // Visiteur : on l'envoie vers la connexion. Connecté : messagerie pas encore prête.
   const onContact = () => {
-    if (!user) {
-      router.push({ pathname: '/login' } as any);
-      return;
-    }
-    Alert.alert('Contacter', 'La messagerie arrive bientôt.');
-  };
+        if (!user) {
+            router.push({ pathname: '/login' } as any);
+            return;
+        }
+        if (user.uid === listing.ownerId) {
+            Alert.alert('Votre annonce', 'Vous ne pouvez pas vous écrire à vous-même.');
+            return;
+        }
+        router.push({
+            pathname: '/conversation/[id]',
+            params: {
+            id: conversationId(listing.id, user.uid),
+            listingId: listing.id,
+            sellerId: listing.ownerId,
+            title: listing.title,
+            },
+        } as any);
+        };
 
   return (
     <View style={styles.c}>
