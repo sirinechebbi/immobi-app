@@ -14,13 +14,14 @@ import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { auth } from '@/config/firebase';
 import { useAuthStore } from '@/store/authStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { colors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 const MIN_SPLASH_MS = 1800;
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Lora_400Regular,
     Lora_500Medium,
     Lora_600SemiBold,
@@ -37,7 +38,7 @@ export default function RootLayout() {
   const [minTimePassed, setMinTimePassed] = useState(false);
 
   useEffect(() => {
-    SplashScreen.hideAsync(); // l'écran d'ouverture animé prend le relais
+    SplashScreen.hideAsync(); // the animated splash takes over
     hydrate();
     const unsubscribe = onAuthStateChanged(auth, setUser);
     const timer = setTimeout(() => setMinTimePassed(true), MIN_SPLASH_MS);
@@ -47,16 +48,23 @@ export default function RootLayout() {
     };
   }, [hydrate, setUser]);
 
-  const ready = fontsLoaded && hydrated && !authInitializing && minTimePassed;
+  const ready = hydrated && !authInitializing && minTimePassed && (fontsLoaded || !!fontError);
   if (!ready) return <AnimatedSplash />;
 
+  // No check on the user here: visitors reach (tabs) as soon as the onboarding is seen.
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
       <Stack.Protected guard={!seen}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
       <Stack.Protected guard={seen}>
-        <Stack.Screen name="login" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="listing/[id]"
+          options={{ headerShown: true, title: 'Annonce', headerTintColor: colors.primary }}
+        />
+        <Stack.Screen name="login" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="register" options={{ presentation: 'modal' }} />
       </Stack.Protected>
     </Stack>
   );
