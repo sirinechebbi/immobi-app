@@ -71,6 +71,21 @@ export default function HomeScreen() {
         </View>
         <Ionicons name="notifications-outline" size={22} color={colors.text} />
       </View>
+      
+      {!signedIn && (
+  <View style={styles.welcome}>
+    <Text style={styles.welcomeTitle}>Bienvenue sur ImmoBi</Text>
+    <Text style={styles.welcomeText}>
+      Parcourez librement les annonces. Connectez-vous pour enregistrer vos favoris et
+      contacter les annonceurs.
+    </Text>
+    <Pressable
+      style={styles.welcomeBtn}
+      onPress={() => router.push({ pathname: '/login' } as any)}>
+      <Text style={styles.welcomeBtnT}>Se connecter</Text>
+    </Pressable>
+  </View>
+)}
 
       <Text style={styles.h1}>Les bonnes trouvailles</Text>
 
@@ -167,4 +182,19 @@ const styles = StyleSheet.create({
   all: { fontFamily: fonts.semibold, fontSize: 13, color: colors.primary },
   empty: { alignItems: 'center', marginTop: 40, gap: 8 },
   emptyT: { fontFamily: fonts.regular, color: colors.muted },
+
+  welcome: { backgroundColor: colors.primary, borderRadius: 18, padding: 18, gap: 8 },
+welcomeTitle: { fontFamily: fonts.bold, fontSize: 18, color: '#FFFFFF' },
+welcomeText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: '#FFFFFF' },
+welcomeBtn: {
+  alignSelf: 'flex-start',
+  marginTop: 4,
+  backgroundColor: '#FFFFFF',
+  paddingHorizontal: 18,
+  height: 40,
+  borderRadius: 12,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+welcomeBtnT: { fontFamily: fonts.semibold, fontSize: 14, color: colors.primary },
 });

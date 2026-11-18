@@ -39,7 +39,11 @@ export default function LoginScreen() {
 
       await signIn(email, password);
 
-      router.replace('/(tabs)' as never);
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)' as never);
+      }
     } catch (error) {
       Alert.alert('Connexion impossible', authErrorMessage(error));
     } finally {

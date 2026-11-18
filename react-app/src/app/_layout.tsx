@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { colors } from '@/theme';
 
+
 SplashScreen.preventAutoHideAsync();
 
 const MIN_SPLASH_MS = 1800;
