@@ -63,6 +63,10 @@ export default function RootLayout() {
           name="listing/[id]"
           options={{ headerShown: true, title: 'Annonce', headerTintColor: colors.primary }}
         />
+        <Stack.Screen
+          name="conversation/[id]"
+          options={{ headerShown: true, title: 'Discussion', headerTintColor: colors.primary }}
+        />
         <Stack.Screen name="login" options={{ presentation: 'modal' }} />
         <Stack.Screen name="register" options={{ presentation: 'modal' }} />
       </Stack.Protected>
