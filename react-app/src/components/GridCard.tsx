@@ -40,6 +40,10 @@ export function GridCard({ item, width, favorite, onPress, onToggleFavorite }: P
         >
           <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={18} color={colors.primary} />
         </Pressable>
+        {/* Tag: "À vendre" or "À louer" */}
+        <View style={styles.tag}>
+          <Text style={styles.tagT}>{item.transaction === 'location' ? 'À louer' : 'À vendre'}</Text>
+        </View>
       </View>
       <Text style={styles.price}>{formatPrice(item)}</Text>
       <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
@@ -67,4 +71,14 @@ const styles = StyleSheet.create({
   price: { marginTop: 8, fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   title: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },
   meta: { marginTop: 1, fontFamily: fonts.regular, fontSize: 11, color: colors.muted },
+  tag: {
+  position: 'absolute',
+  top: 8,
+  left: 8,
+  backgroundColor: colors.primary,
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 10,
+},
+tagT: { fontFamily: fonts.semibold, fontSize: 11, color: '#FFFFFF' },
 });
