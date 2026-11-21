@@ -128,7 +128,13 @@ export default function ConversationScreen() {
         const snap = await getDoc(doc(db, 'conversations', id));
         if (snap.exists()) setConv(parseConversation(snap));
       }
-      await sendMessage(id, user.uid, content);
+      // The other person: from the conversation if it exists, otherwise the seller of the listing
+        const otherId = conv
+          ? conv.buyerId === user.uid
+            ? conv.sellerId
+            : conv.buyerId
+          : (sellerId as string);
+        await sendMessage(id, user.uid, otherId, content);
       setText('');
     } catch {
       Alert.alert('Erreur', "Impossible d'envoyer le message.");

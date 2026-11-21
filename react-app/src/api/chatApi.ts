@@ -1,12 +1,13 @@
 import {
   DocumentSnapshot,
-  addDoc,
   collection,
   doc,
   getDoc,
+  increment,
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 
 import { db } from '@/config/firebase';
@@ -89,12 +90,29 @@ export async function createConversation(p: CreateParams): Promise<void> {
   });
 }
 
-export async function sendMessage(convId: string, senderId: string, content: string) {
-  await addDoc(collection(db, 'conversations', convId, 'messages'), {
-    senderId,
-    content,
-    createdAt: serverTimestamp(),
+// Sends the message AND updates the conversation (last message + other person's unread number).
+// Plan B: the phone does it, because the Cloud Function is not deployed.
+export async function sendMessage(
+  convId: string,
+  senderId: string,
+  otherId: string,
+  content: string
+) {
+  const batch = writeBatch(db);
+
+  // 1. the new message
+  const msgRef = doc(collection(db, 'conversations', convId, 'messages'));
+  batch.set(msgRef, { senderId, content, createdAt: serverTimestamp() });
+
+  // 2. the conversation: preview, time, sender, and +1 unread for the other person
+  batch.update(doc(db, 'conversations', convId), {
+    lastMessage: content.length > 120 ? `${content.slice(0, 117)}…` : content,
+    lastMessageAt: serverTimestamp(),
+    lastSenderId: senderId,
+    [`unread.${otherId}`]: increment(1),
   });
+
+  await batch.commit();
 }
 
 // Rule (a): a participant can only reset his own unread counter.

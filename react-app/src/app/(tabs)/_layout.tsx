@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-
+import { useUnreadCount } from '@/hooks/use-unread';
 import { colors, fonts } from '@/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -25,6 +25,7 @@ function PublishButton({ onPress }: { onPress?: (e: any) => void }) {
 }
 
 export default function TabsLayout() {
+  const unread = useUnreadCount();
   return (
     <Tabs
       screenOptions={({ route }) => ({
@@ -38,7 +39,10 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Accueil' }} />
       <Tabs.Screen name="search" options={{ title: 'Recherche' }} />
       <Tabs.Screen name="publish" options={{ title: 'Publier', tabBarButton: (p) => <PublishButton onPress={p.onPress} /> }} />
-      <Tabs.Screen name="chat" options={{ title: 'Chat' }} />
+      <Tabs.Screen
+        name="chat"
+        options={{ title: 'Chat', tabBarBadge: unread > 0 ? unread : undefined }}
+      />
       <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
     </Tabs>
   );

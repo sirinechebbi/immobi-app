@@ -181,21 +181,53 @@ exports.onMessageCreated = onDocumentCreated('conversations/{cid}/messages/{mid}
   ]);
   if (tokensSnap.empty) return;
 
-  const senderName = (senderDoc.data() && senderDoc.data().fullName) || 'Nouveau message';
-  const res = await admin.messaging().sendEachForMulticast({
-    tokens: tokensSnap.docs.map((t) => t.id),
-    notification: { title: senderName, body: preview },
-    data: { type: 'message', conversationId: event.params.cid, listingId: conv.listingId },
-    android: { priority: 'high' },
-    apns: { payload: { aps: { sound: 'default' } } },
-  });
-
+    const senderName = (senderDoc.data() && senderDoc.data().fullName) || 'Nouveau message';
+  const data = { type: 'message', conversationId: event.params.cid, listingId: conv.listingId };
+  const isExpo = (id) => /^Expo(nent)?PushToken\[/.test(id);
+  const expoDocs = tokensSnap.docs.filter((t) => isExpo(t.id));
+  const fcmDocs = tokensSnap.docs.filter((t) => !isExpo(t.id));
   const stale = [];
-  res.responses.forEach((r, i) => {
-    const code = r.error && r.error.code;
-    if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
-      stale.push(tokensSnap.docs[i].ref.delete());
-    }
-  });
+
+  // React Native app: Expo push tokens, sent through the Expo Push Service
+  if (expoDocs.length) {
+    const resp = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(
+        expoDocs.map((t) => ({
+          to: t.id,
+          title: senderName,
+          body: preview,
+          sound: 'default',
+          channelId: 'default',
+          data,
+        }))
+      ),
+    });
+    const json = await resp.json();
+    (json.data || []).forEach((r, i) => {
+      if (r.status === 'error' && r.details && r.details.error === 'DeviceNotRegistered') {
+        stale.push(expoDocs[i].ref.delete());
+      }
+    });
+  }
+
+  // Other tokens (native FCM, e.g. another app of the team): same behaviour as before
+  if (fcmDocs.length) {
+    const res = await admin.messaging().sendEachForMulticast({
+      tokens: fcmDocs.map((t) => t.id),
+      notification: { title: senderName, body: preview },
+      data,
+      android: { priority: 'high' },
+      apns: { payload: { aps: { sound: 'default' } } },
+    });
+    res.responses.forEach((r, i) => {
+      const code = r.error && r.error.code;
+      if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
+        stale.push(fcmDocs[i].ref.delete());
+      }
+    });
+  }
+
   await Promise.all(stale);
 });

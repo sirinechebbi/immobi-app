@@ -10,6 +10,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
+import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
+
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { auth } from '@/config/firebase';
 import { useAuthStore } from '@/store/authStore';
@@ -49,6 +52,26 @@ export default function RootLayout() {
   }, [hydrate, setUser]);
 
   const ready = hydrated && !authInitializing && minTimePassed && (fontsLoaded || !!fontError);
+  const user = useAuthStore((s) => s.user);
+
+
+
+// Open the right conversation when a notification is tapped
+useEffect(() => {
+  if (!ready) return;
+  const open = (n?: Notifications.Notification) => {
+    const data = n?.request.content.data as { conversationId?: string } | undefined;
+    if (data?.conversationId) {
+      router.push({
+        pathname: '/conversation/[id]',
+        params: { id: data.conversationId },
+      } as any);
+    }
+  };
+  Notifications.getLastNotificationResponseAsync().then((r) => open(r?.notification));
+  const sub = Notifications.addNotificationResponseReceivedListener((r) => open(r.notification));
+  return () => sub.remove();
+}, [ready]);
   if (!ready) return <AnimatedSplash />;
 
   // No check on the user here: visitors reach (tabs) as soon as the onboarding is seen.
