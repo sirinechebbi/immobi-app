@@ -110,8 +110,7 @@ export default function HomeScreen() {
 
   const header = (
     <View style={styles.head}>
-      {/* REMOVED: the "À proximité" row.
-          CHANGED: the top row now only exists for signed-in users, because it only holds the bell */}
+      {/* CHANGED: the top row now only exists for signed-in users, because it only holds the bell */}
       {signedIn && (
         <View style={styles.top}>
           <Pressable
@@ -172,7 +171,7 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* CHANGED: the button now opens the filter sheet, with a badge = active filters */}
+        {/* the button now opens the filter sheet, with a badge = active filters */}
         <Pressable
           style={styles.filter}
           onPress={() => setSheetOpen(true)}
