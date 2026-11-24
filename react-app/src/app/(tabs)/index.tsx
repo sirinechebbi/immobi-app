@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -67,10 +67,11 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
   // CHANGED: category + search + the new filters, then sorting.
   // Everything runs on the phone, on the listings already loaded.
   const data = useMemo(() => {

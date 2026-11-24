@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+
 import { useUnreadCount } from '@/hooks/use-unread';
 import { colors, fonts } from '@/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
-const ICONS: Record<string, IconName> = {
-  index: 'home-outline',
-  search: 'search-outline',
-  chat: 'chatbubble-outline',
-  profile: 'person-outline',
+
+const ICONS: Record<string, { off: IconName; on: IconName }> = {
+  index: { off: 'home-outline', on: 'home' },
+  favorites: { off: 'heart-outline', on: 'heart' },
+  chat: { off: 'chatbubble-outline', on: 'chatbubble' },
+  profile: { off: 'person-outline', on: 'person' },
 };
 
 // Bouton central rond « Publier »
@@ -33,17 +35,27 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 11 },
-        tabBarIcon: ({ color, size }) => <Ionicons name={ICONS[route.name]} size={size} color={color as string} />,
+        tabBarIcon: ({ color, size, focused }) => {
+          const icon = ICONS[route.name];
+          if (!icon) return null;
+          return <Ionicons name={focused ? icon.on : icon.off} size={size} color={color as string} />;
+        },
       })}
     >
       <Tabs.Screen name="index" options={{ title: 'Accueil' }} />
-      <Tabs.Screen name="search" options={{ title: 'Recherche' }} />
-      <Tabs.Screen name="publish" options={{ title: 'Publier', tabBarButton: (p) => <PublishButton onPress={p.onPress} /> }} />
+      <Tabs.Screen name="favorites" options={{ title: 'Favoris' }} />
+      <Tabs.Screen
+        name="publish"
+        options={{ title: 'Publier', tabBarButton: (p) => <PublishButton onPress={p.onPress} /> }}
+      />
       <Tabs.Screen
         name="chat"
         options={{ title: 'Chat', tabBarBadge: unread > 0 ? unread : undefined }}
       />
       <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
+
+      {/* Masqué dans la barre : la recherche est sur l'accueil. Le fichier reste disponible. */}
+      <Tabs.Screen name="search" options={{ href: null }} />
     </Tabs>
   );
 }
