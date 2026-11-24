@@ -80,7 +80,11 @@ useEffect(() => {
       <Stack.Protected guard={!seen}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
-      <Stack.Protected guard={seen}>
+      <Stack.Protected guard={seen} >
+        <Stack.Screen
+            name="map"
+            options={{ headerShown: true, title: 'Carte', headerTintColor: colors.primary }}
+          />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="listing/[id]"

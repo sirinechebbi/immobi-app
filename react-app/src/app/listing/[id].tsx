@@ -5,6 +5,8 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,12 +14,14 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-
+import MapView, { Marker } from 'react-native-maps';
 import { Listing, fetchListing, formatPrice } from '@/api/listingsApi';
 import { PROPERTY_LABELS } from '@/constants/propreties';
 import { useAuthStore } from '@/store/authStore';
 import { colors, fonts } from '@/theme';
 import { conversationId } from '@/api/chatApi';
+import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -94,6 +98,55 @@ export default function ListingDetailScreen() {
             },
         } as any);
         };
+        // Is this listing mine?
+const isMine = !!user && user.uid === listing.ownerId;
+// Does this listing have a usable position?
+const hasLocation = typeof listing.lat === 'number' && typeof listing.lng === 'number';
+
+// Opens the phone's own maps app on this position
+const openInMaps = () => {
+  const label = encodeURIComponent(listing.title);
+  const url =
+    Platform.OS === 'ios'
+      ? `http://maps.apple.com/?ll=${listing.lat},${listing.lng}&q=${label}`
+      : `geo:${listing.lat},${listing.lng}?q=${listing.lat},${listing.lng}(${label})`;
+  Linking.openURL(url).catch(() =>
+    Alert.alert('Erreur', "Impossible d'ouvrir l'application de cartes.")
+  );
+};
+// Archive = hidden from visitors but kept; your rules allow the owner to do it
+const onArchive = () =>
+  Alert.alert('Archiver', 'Cette annonce ne sera plus visible par les visiteurs.', [
+    { text: 'Annuler', style: 'cancel' },
+    {
+      text: 'Archiver',
+      onPress: async () => {
+        try {
+          await updateDoc(doc(db, 'listings', listing.id), { status: 'archived' });
+          router.back();
+        } catch {
+          Alert.alert('Erreur', "Impossible d'archiver l'annonce.");
+        }
+      },
+    },
+  ]);
+
+const onDelete = () =>
+  Alert.alert('Supprimer', 'Cette action est définitive.', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, 'listings', listing.id));
+            router.back();
+          } catch {
+            Alert.alert('Erreur', "Impossible de supprimer l'annonce.");
+          }
+        },
+    },
+  ]);
 
   return (
     <View style={styles.c}>
@@ -123,14 +176,56 @@ export default function ListingDetailScreen() {
           <Text style={styles.muted}>{listing.city ?? 'Tunisie'}</Text>
           <Text style={styles.details}>{details}</Text>
           {!!listing.description && <Text style={styles.desc}>{listing.description}</Text>}
+          {hasLocation && (
+  <View style={styles.mapBox}>
+    <Text style={styles.mapTitle}>Localisation</Text>
+    {/* Small fixed map: gestures are off so it does not fight with the page scroll */}
+    <MapView
+      style={styles.map}
+      initialRegion={{
+        latitude: listing.lat,
+        longitude: listing.lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }}
+      scrollEnabled={false}
+      zoomEnabled={false}
+      rotateEnabled={false}
+      pitchEnabled={false}
+      onPress={openInMaps}>
+      <Marker
+        coordinate={{ latitude: listing.lat, longitude: listing.lng }}
+        pinColor={colors.primary}
+      />
+    </MapView>
+    <Pressable onPress={openInMaps}>
+      <Text style={styles.mapLink}>Ouvrir dans l'application de cartes</Text>
+    </Pressable>
+  </View>
+)}
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable style={styles.btn} onPress={onContact}>
-          <Text style={styles.btnT}>{user ? 'Contacter' : 'Se connecter pour contacter'}</Text>
+  {isMine ? (
+    <View style={{ gap: 10 }}>
+      <Text style={styles.muted}>C'est votre annonce</Text>
+      {/* TODO: link to the edit screen when the Publier page exists */}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Pressable style={[styles.btn, { flex: 1 }]} onPress={onArchive}>
+          <Text style={styles.btnT}>Archiver</Text>
+        </Pressable>
+        <Pressable style={[styles.btnDanger, { flex: 1 }]} onPress={onDelete}>
+          <Text style={styles.btnDangerT}>Supprimer</Text>
         </Pressable>
       </View>
+    </View>
+  ) : (
+    <Pressable style={styles.btn} onPress={onContact}>
+      <Text style={styles.btnT}>{user ? 'Contacter' : 'Se connecter pour contacter'}</Text>
+    </Pressable>
+  )}
+</View>
     </View>
   );
 }
@@ -153,4 +248,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnT: { fontFamily: fonts.semibold, fontSize: 16, color: '#FFFFFF' },
+  btnDanger: {
+  height: 52,
+  borderRadius: 14,
+  borderWidth: 1.5,
+  borderColor: colors.error,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+btnDangerT: { fontFamily: fonts.semibold, fontSize: 16, color: colors.error },
+mapBox: { marginTop: 16, gap: 10 },
+mapTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
+map: { width: '100%', height: 180, borderRadius: 16, overflow: 'hidden' },
+mapLink: { fontFamily: fonts.semibold, fontSize: 13, color: colors.primary },
 });

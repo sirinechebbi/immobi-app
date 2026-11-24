@@ -12,9 +12,10 @@ type Props = {
   favorite: boolean;
   onPress: () => void;
   onToggleFavorite: () => void;
+  isMine?: boolean;
 };
 
-export function GridCard({ item, width, favorite, onPress, onToggleFavorite }: Props) {
+export function GridCard({ item, width, favorite, onPress, onToggleFavorite, isMine }: Props) {
   const details = [
     PROPERTY_LABELS[item.propertyType],
     item.rooms ? `${item.rooms} p.` : null,
@@ -32,6 +33,11 @@ export function GridCard({ item, width, favorite, onPress, onToggleFavorite }: P
           contentFit="cover"
           transition={200}
         />
+        {isMine && (
+          <View style={styles.mine}>
+            <Text style={styles.mineT}>Votre annonce</Text>
+          </View>
+        )}
         <Pressable
           onPress={onToggleFavorite}
           hitSlop={8}
@@ -81,4 +87,16 @@ const styles = StyleSheet.create({
   borderRadius: 10,
 },
 tagT: { fontFamily: fonts.semibold, fontSize: 11, color: '#FFFFFF' },
+mine: {
+  position: 'absolute',
+  bottom: 8,
+  left: 8,
+  backgroundColor: '#FFFFFF',
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 10,
+  borderWidth: 1.5,
+  borderColor: colors.primary,
+},
+mineT: { fontFamily: fonts.bold, fontSize: 11, color: colors.primary },
 });

@@ -13,7 +13,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { useAuthStore } from '@/store/authStore';
 import { Listing, fetchLatestListings } from '@/api/listingsApi';
 import {
   DEFAULT_FILTERS,
@@ -50,7 +50,7 @@ export default function HomeScreen() {
   const [chip, setChip] = useState<PropertyType | 'tout'>('tout'); // selected category
   const [q, setQ] = useState(''); // search text
   const [hideBanner, setHideBanner] = useState(false); // visitor closed the welcome banner
-
+  const user = useAuthStore((s) => s.user);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS); // NEW: applied filters
   const [sheetOpen, setSheetOpen] = useState(false); // NEW: is the filter sheet open?
 
@@ -171,7 +171,13 @@ export default function HomeScreen() {
             returnKeyType="search"
           />
         </View>
-
+        {/* NEW: opens the map of all listings */}
+        <Pressable
+          style={styles.mapBtn}
+          onPress={() => router.push({ pathname: '/map' } as any)}
+          accessibilityLabel="Voir la carte">
+          <Ionicons name="map-outline" size={20} color={colors.primary} />
+        </Pressable>
         {/* the button now opens the filter sheet, with a badge = active filters */}
         <Pressable
           style={styles.filter}
@@ -248,6 +254,7 @@ export default function HomeScreen() {
         }
         renderItem={({ item }) => (
           <GridCard
+            isMine={!!user && item.ownerId === user.uid}
             item={item}
             width={cardW}
             favorite={favIds.has(item.id)}
@@ -292,6 +299,15 @@ const styles = StyleSheet.create({
     height: 48,
   },
   input: { flex: 1, fontFamily: fonts.regular, fontSize: 14, color: colors.text },
+  mapBtn: {
+  width: 48,
+  height: 48,
+  borderRadius: 14,
+  borderWidth: 1.5,
+  borderColor: colors.primary,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
   filter: {
     width: 48,
     height: 48,
