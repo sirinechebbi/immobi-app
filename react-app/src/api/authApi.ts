@@ -7,7 +7,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-
+import { unregisterPush } from '@/api/pushApi';
 import { auth, db } from '@/config/firebase';
 
 export async function signIn(email: string, password: string) {
@@ -30,8 +30,10 @@ export function resetPassword(email: string) {
   return sendPasswordResetEmail(auth, email.trim());
 }
 
-export function logOut() {
-  return signOut(auth);
+export async function logOut() {
+  const uid = auth.currentUser?.uid;
+  if (uid) await unregisterPush(uid);
+  await signOut(auth);
 }
 
 export function authErrorMessage(e: unknown): string {
